@@ -242,7 +242,7 @@ void setup() {
   // Safe defaults before SD config is loaded. ConfigManager may override after SD mount.
   ToolGatewayClient::Config gatewayConfig;
   gatewayConfig.enabled = false;
-  gatewayConfig.baseUrl = "http://192.168.0.248:8811/stackchan";
+  gatewayConfig.baseUrl = "";
   gatewayConfig.robotId = "stackchan";
   toolGateway.begin(gatewayConfig);
   gemini.setToolBridge(&toolBridge);

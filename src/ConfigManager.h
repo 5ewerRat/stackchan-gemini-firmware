@@ -18,7 +18,7 @@ class ConfigManager {
     bool geminiEnabled = false;
     bool gatewayEnabled = false;
     bool webEnabled = false;
-    String gatewayBaseUrl = "http://192.168.0.248:8811/stackchan";
+    String gatewayBaseUrl;
     String wifiSsid;
     uint8_t speakerVolume = 200;
     uint8_t micMagnification = 16;
