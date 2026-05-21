@@ -235,15 +235,26 @@ static bool shouldStartSetupAccessPoint(const ConfigManager& cfg, bool sdConfigE
   return false;
 }
 
+static String setupApSuffix() {
+  char suffix[5];
+  snprintf(suffix, sizeof(suffix), "%04X", static_cast<unsigned>(ESP.getEfuseMac() & 0xFFFF));
+  return String(suffix);
+}
+
 static bool startSetupAccessPoint(const ConfigManager& cfg) {
+  String suffix = setupApSuffix();
   String apName = cfg.config().robotId.length() ? cfg.config().robotId : "stackchan";
-  apName += "-setup";
+  apName += "-setup-";
+  apName += suffix;
   apName.replace(" ", "-");
+  String apPassword = "stackchan" + suffix;
   Serial.print("WiFi: starting setup access point ssid=");
   Serial.println(apName);
+  Serial.print("WiFi: setup access point password=");
+  Serial.println(apPassword);
   WiFi.mode(WIFI_AP);
   WiFi.setSleep(false);
-  bool ok = WiFi.softAP(apName.c_str());
+  bool ok = WiFi.softAP(apName.c_str(), apPassword.c_str());
   if (!ok) {
     Serial.println("WiFi: setup access point failed");
     return false;

@@ -11,7 +11,7 @@
 class ToolGatewayClient {
  public:
   struct Config {
-    String baseUrl = "http://192.168.0.248:8811/stackchan";
+    String baseUrl = "";
     String robotId = "stackchan";
     uint32_t timeoutMs = 8000;
     size_t maxResponseBytes = 8192;

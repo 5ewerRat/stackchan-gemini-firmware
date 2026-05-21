@@ -76,7 +76,7 @@ String GeminiToolBridge::functionDeclarationsJson() {
 
   auto askHermes = arr.add<JsonObject>();
   askHermes["name"] = "ask_hermes";
-  askHermes["description"] = "Create a safe structured request for Hermes/Anton only for explicit external help. Never use for 'remember this' or private/sensitive content such as PINs/passwords/tokens; those stay local.";
+  askHermes["description"] = "Create a safe structured request for the configured external assistant gateway only for explicit external help. Never use for 'remember this' or private/sensitive content such as PINs/passwords/tokens; those stay local.";
   auto ahParams = askHermes["parameters"].to<JsonObject>();
   ahParams["type"] = "object";
   auto ahProps = ahParams["properties"].to<JsonObject>();
@@ -169,9 +169,11 @@ String GeminiToolBridge::handleFunctionCall(const String& name, const JsonVarian
     String question = String((const char*)(args["question"] | ""));
     String q = question;
     q.toLowerCase();
-    if (q.indexOf("pin") >= 0 || q.indexOf("password") >= 0 ||
-        q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 ||
-        q.indexOf("code") >= 0 || q.indexOf("remember") >= 0) {
+    if (q.indexOf("pin") >= 0 || q.indexOf("\xD0\xBF\xD0\xB8\xD0\xBD") >= 0 ||
+        q.indexOf("password") >= 0 || q.indexOf("\xD0\xBF\xD0\xB0\xD1\x80\xD0\xBE\xD0\xBB") >= 0 ||
+        q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 || q.indexOf("\xD1\x81\xD0\xB5\xD0\xBA\xD1\x80\xD0\xB5\xD1\x82") >= 0 ||
+        q.indexOf("code") >= 0 || q.indexOf("\xD0\xBA\xD0\xBE\xD0\xB4") >= 0 ||
+        q.indexOf("remember") >= 0 || q.indexOf("\xD0\xB7\xD0\xB0\xD0\xBF\xD0\xBE\xD0\xBC") >= 0) {
       JsonDocument blocked;
       blocked["ok"] = false;
       blocked["blocked"] = true;
@@ -218,9 +220,10 @@ GeminiToolBridge::LocalStatus GeminiToolBridge::handleLocal(
     response["source"] = "local_active_dialogue_context_only";
     response["query"] = query;
 
-    if (q.indexOf("pin") >= 0 || q.indexOf("password") >= 0 ||
-        q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 ||
-        q.indexOf("code") >= 0) {
+    if (q.indexOf("pin") >= 0 || q.indexOf("\xD0\xBF\xD0\xB8\xD0\xBD") >= 0 ||
+        q.indexOf("password") >= 0 || q.indexOf("\xD0\xBF\xD0\xB0\xD1\x80\xD0\xBE\xD0\xBB") >= 0 ||
+        q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 || q.indexOf("\xD1\x81\xD0\xB5\xD0\xBA\xD1\x80\xD0\xB5\xD1\x82") >= 0 ||
+        q.indexOf("code") >= 0 || q.indexOf("\xD0\xBA\xD0\xBE\xD0\xB4") >= 0) {
       response["private_query"] = true;
       response["active_context"] = "";
       response["instruction"] = "search_memory never exposes private values. If and only if the user explicitly asks to recall a saved private code/PIN/password, call recall_private_memory locally instead.";

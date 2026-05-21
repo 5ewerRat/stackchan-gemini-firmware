@@ -145,8 +145,8 @@ bool MemoryStore::recallPrivateMemory(const String& query, String& kind, String&
     String hay = kindLower + " " + labelLower;
     bool match = !q.length() || hay.indexOf(q) >= 0 || q.indexOf(kindLower) >= 0 || q.indexOf(labelLower) >= 0;
     if (!match) {
-      if (q.indexOf("pin") >= 0 && kindLower.indexOf("pin") >= 0) match = true;
-      if (q.indexOf("code") >= 0 && kindLower.indexOf("code") >= 0) match = true;
+      if ((q.indexOf("pin") >= 0 || q.indexOf("\xD0\xBF\xD0\xB8\xD0\xBD") >= 0) && kindLower.indexOf("pin") >= 0) match = true;
+      if ((q.indexOf("code") >= 0 || q.indexOf("\xD0\xBA\xD0\xBE\xD0\xB4") >= 0) && kindLower.indexOf("code") >= 0) match = true;
     }
     if (!match) continue;
     kind = candKind;
@@ -317,8 +317,8 @@ String MemoryStore::summariesPreview(size_t maxChars) {
 }
 
 String MemoryStore::dateForRelativeQuery(const String& queryLower) const {
-  if (queryLower.indexOf("today") >= 0) return _todayKey;
-  if (queryLower.indexOf("yesterday") >= 0) {
+  if (queryLower.indexOf("today") >= 0 || queryLower.indexOf("\xD1\x81\xD0\xB5\xD0\xB3\xD0\xBE\xD0\xB4\xD0\xBD\xD1\x8F") >= 0) return _todayKey;
+  if (queryLower.indexOf("yesterday") >= 0 || queryLower.indexOf("\xD0\xB2\xD1\x87\xD0\xB5\xD1\x80\xD0\xB0") >= 0) {
     struct tm timeInfo;
     if (getLocalTime(&timeInfo, 10)) {
       time_t t = mktime(&timeInfo) - 24 * 60 * 60;
@@ -369,13 +369,20 @@ int MemoryStore::scoreMemoryText(const String& queryLower, const String& textLow
     }
     start = end + 1;
   }
-  if ((queryLower.indexOf("people") >= 0 || queryLower.indexOf("person") >= 0) &&
-      (tagsLower.indexOf("people") >= 0 || textLower.indexOf("person") >= 0 || textLower.indexOf("people") >= 0)) score += 6;
-  if ((queryLower.indexOf("room") >= 0 || queryLower.indexOf("saw") >= 0 || queryLower.indexOf("look") >= 0) &&
+  if ((queryLower.indexOf("people") >= 0 || queryLower.indexOf("person") >= 0 ||
+       queryLower.indexOf("\xD0\xBB\xD1\x8E\xD0\xB4") >= 0 || queryLower.indexOf("\xD1\x87\xD0\xB5\xD0\xBB\xD0\xBE\xD0\xB2\xD0\xB5\xD0\xBA") >= 0) &&
+      (tagsLower.indexOf("people") >= 0 || textLower.indexOf("person") >= 0 || textLower.indexOf("people") >= 0 ||
+       textLower.indexOf("\xD1\x87\xD0\xB5\xD0\xBB\xD0\xBE\xD0\xB2\xD0\xB5\xD0\xBA") >= 0 || textLower.indexOf("\xD0\xBB\xD1\x8E\xD0\xB4") >= 0)) score += 6;
+  if ((queryLower.indexOf("room") >= 0 || queryLower.indexOf("saw") >= 0 || queryLower.indexOf("look") >= 0 ||
+       queryLower.indexOf("\xD0\xBA\xD0\xBE\xD0\xBC\xD0\xBD\xD0\xB0\xD1\x82") >= 0 || queryLower.indexOf("\xD0\xB2\xD0\xB8\xD0\xB4\xD0\xB5\xD0\xBB") >= 0 || queryLower.indexOf("\xD1\x81\xD0\xBC\xD0\xBE\xD1\x82\xD1\x80") >= 0) &&
       (tagsLower.indexOf("vision") >= 0 || tagsLower.indexOf("room") >= 0 || tagsLower.indexOf("search") >= 0)) score += 5;
-  if ((queryLower.indexOf("color") >= 0 || queryLower.indexOf("clothes") >= 0 || queryLower.indexOf("shirt") >= 0) &&
-      (textLower.indexOf("red") >= 0 || textLower.indexOf("white") >= 0 || textLower.indexOf("shirt") >= 0)) score += 4;
-  if (queryLower.indexOf("weather") >= 0 && textLower.indexOf("weather") >= 0) score += 6;
+  if ((queryLower.indexOf("color") >= 0 || queryLower.indexOf("clothes") >= 0 || queryLower.indexOf("shirt") >= 0 ||
+       queryLower.indexOf("\xD1\x86\xD0\xB2\xD0\xB5\xD1\x82") >= 0 || queryLower.indexOf("\xD0\xBE\xD0\xB4\xD0\xB5\xD0\xB6") >= 0 || queryLower.indexOf("\xD1\x84\xD1\x83\xD1\x82\xD0\xB1\xD0\xBE\xD0\xBB") >= 0) &&
+      (textLower.indexOf("red") >= 0 || textLower.indexOf("white") >= 0 || textLower.indexOf("shirt") >= 0 ||
+       textLower.indexOf("\xD0\xBA\xD1\x80\xD0\xB0\xD1\x81\xD0\xBD") >= 0 || textLower.indexOf("\xD0\xB1\xD0\xB5\xD0\xBB") >= 0 || textLower.indexOf("\xD1\x84\xD1\x83\xD1\x82\xD0\xB1\xD0\xBE\xD0\xBB") >= 0)) score += 4;
+  if ((queryLower.indexOf("weather") >= 0 || queryLower.indexOf("\xD0\xBF\xD0\xBE\xD0\xB3\xD0\xBE\xD0\xB4") >= 0) &&
+      (textLower.indexOf("weather") >= 0 || textLower.indexOf("\xD0\xBF\xD0\xBE\xD0\xB3\xD0\xBE\xD0\xB4") >= 0)) score += 6;
+  if (queryLower.indexOf("\xD0\xB2\xD0\xB0\xD1\x80\xD1\x88\xD0\xB0\xD0\xB2") >= 0 && textLower.indexOf("\xD0\xB2\xD0\xB0\xD1\x80\xD1\x88\xD0\xB0\xD0\xB2") >= 0) score += 6;
   return score;
 }
 
@@ -844,15 +851,18 @@ bool MemoryStore::readDialogueLine(const String& line, String& ts, String& sessi
 String MemoryStore::redactSensitiveForRuntime(const String& text) const {
   String lower = text;
   lower.toLowerCase();
-  bool sensitive = lower.indexOf("pin") >= 0 || lower.indexOf("password") >= 0 ||
-                   lower.indexOf("token") >= 0 || lower.indexOf("secret") >= 0 ||
-                   lower.indexOf("code") >= 0 || lower.indexOf("address") >= 0 ||
-                   lower.indexOf("apartment") >= 0;
+  bool sensitive = lower.indexOf("pin") >= 0 || lower.indexOf("\xD0\xBF\xD0\xB8\xD0\xBD") >= 0 ||
+                   lower.indexOf("password") >= 0 || lower.indexOf("\xD0\xBF\xD0\xB0\xD1\x80\xD0\xBE\xD0\xBB") >= 0 ||
+                   lower.indexOf("token") >= 0 || lower.indexOf("secret") >= 0 || lower.indexOf("\xD1\x81\xD0\xB5\xD0\xBA\xD1\x80\xD0\xB5\xD1\x82") >= 0 ||
+                   lower.indexOf("code") >= 0 || lower.indexOf("\xD0\xBA\xD0\xBE\xD0\xB4") >= 0 ||
+                   lower.indexOf("address") >= 0 || lower.indexOf("\xD0\xB0\xD0\xB4\xD1\x80\xD0\xB5\xD1\x81") >= 0 ||
+                   lower.indexOf("apartment") >= 0 || lower.indexOf("\xD0\xBA\xD0\xB2\xD0\xB0\xD1\x80\xD1\x82\xD0\xB8\xD1\x80") >= 0;
   if (!sensitive) return text;
 
-  if (lower.indexOf("pin") >= 0 || lower.indexOf("password") >= 0 ||
-      lower.indexOf("token") >= 0 || lower.indexOf("secret") >= 0 ||
-      lower.indexOf("code") >= 0) {
+  if (lower.indexOf("pin") >= 0 || lower.indexOf("\xD0\xBF\xD0\xB8\xD0\xBD") >= 0 ||
+      lower.indexOf("password") >= 0 || lower.indexOf("\xD0\xBF\xD0\xB0\xD1\x80\xD0\xBE\xD0\xBB") >= 0 ||
+      lower.indexOf("token") >= 0 || lower.indexOf("secret") >= 0 || lower.indexOf("\xD1\x81\xD0\xB5\xD0\xBA\xD1\x80\xD0\xB5\xD1\x82") >= 0 ||
+      lower.indexOf("code") >= 0 || lower.indexOf("\xD0\xBA\xD0\xBE\xD0\xB4") >= 0) {
     return "[PRIVATE_CODE_REDACTED: user discussed a private code/PIN/password; do not repeat it aloud or expose it to tools]";
   }
   return "[PRIVATE_ADDRESS_REDACTED: user discussed a private address/location; do not repeat it aloud or expose it to tools]";

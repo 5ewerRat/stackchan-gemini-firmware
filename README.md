@@ -23,7 +23,7 @@ This is an experimental developer firmware tree. The defaults are conservative:
 - Web UI: available on the LAN after Wi-Fi connects, or at the setup access point IP during first setup.
 - Gateway tools: disabled unless explicitly configured.
 
-On first setup or after Wi-Fi failure, the firmware starts an open setup access point named `<robot_id>-setup` and serves the Web UI at `http://192.168.4.1/`. Use it to enter Wi-Fi SSID/password, Gemini key, and a Web password, then reboot.
+On first setup or after Wi-Fi failure, the firmware starts a WPA2 setup access point named `<robot_id>-setup-XXXX` and serves the Web UI at `http://192.168.4.1/`. Use it to enter Wi-Fi SSID/password, Gemini key, and a Web password, then reboot. The `XXXX` suffix is shown in the AP SSID; use password `stackchanXXXX`.
 
 ## Hardware
 
@@ -69,7 +69,7 @@ Target environment:
    pio device monitor -b 115200
    ```
 
-7. If Wi-Fi connects, open the robot IP in a browser. If Wi-Fi is not configured or fails, join the `<robot_id>-setup` access point and open `http://192.168.4.1/`. Set a Web password in the **Web security** section before using the robot on a shared LAN.
+7. If Wi-Fi connects, open the robot IP in a browser. If Wi-Fi is not configured or fails, join the `<robot_id>-setup-XXXX` access point with password `stackchanXXXX` and open `http://192.168.4.1/`. Set a Web password in the **Web security** section before using the robot on a shared LAN.
 
 ## Configuration overview
 

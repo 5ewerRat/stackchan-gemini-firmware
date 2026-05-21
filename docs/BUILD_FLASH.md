@@ -40,11 +40,13 @@ If upload fails with permissions, add your user to the appropriate serial group 
 
 ## First setup
 
-If Wi-Fi credentials are missing or the configured network cannot be reached, the firmware starts an open setup access point named `<robot_id>-setup` and serves the Web UI at:
+If Wi-Fi credentials are missing or the configured network cannot be reached, the firmware starts a WPA2 setup access point named `<robot_id>-setup-XXXX` and serves the Web UI at:
 
 ```text
 http://192.168.4.1/
 ```
+
+The `XXXX` suffix is the last four hex digits shown in the setup SSID; the AP password is `stackchanXXXX`.
 
 Use the Web UI to set Wi-Fi SSID/password, Gemini API key, and Web password. Reboot after changing network settings.
 
