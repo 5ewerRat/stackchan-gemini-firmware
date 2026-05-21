@@ -10,6 +10,14 @@
 *.hex
 compile_commands.json
 
+# Local SD-card/runtime copies and secrets
+/app/
+app/
+StackChan/
+secrets/
+*.local.json
+*.local.txt
+
 # Local/editor files
 .vscode/
 .DS_Store

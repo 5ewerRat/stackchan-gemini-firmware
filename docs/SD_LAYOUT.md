@@ -29,7 +29,7 @@ The firmware stores mutable runtime state on the SD card under `/app/StackChan/`
     latest.jpg
 ```
 
-The firmware creates some directories automatically after SD mount, but for first configuration it is easiest to prepare the files manually.
+The firmware creates some directories automatically after SD mount. For first configuration, either prepare the files manually or use the setup access point Web UI after flashing.
 
 ## Minimal Wi-Fi + Web UI setup
 
@@ -59,7 +59,7 @@ Example `wifi_password.txt`:
 YOUR_WIFI_PASSWORD
 ```
 
-Boot the robot, read the IP from serial logs, then open `http://ROBOT_IP/`.
+Boot the robot. If station Wi-Fi connects, read the IP from serial logs and open `http://ROBOT_IP/`. If credentials are missing or connection fails, join the open `<robot_id>-setup` access point and open `http://192.168.4.1/`. The Web UI can save Wi-Fi SSID/password and other settings; reboot after saving network changes.
 
 ## Gemini setup
 

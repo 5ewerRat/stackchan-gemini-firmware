@@ -14,7 +14,7 @@ The firmware includes lightweight LAN protection for the Web UI/API.
 
 To avoid locking out a fresh device:
 
-- If no Web password hash exists, the Web UI/API is open.
+- If no Web password hash exists, the Web UI/API is open. This includes first setup access point mode.
 - `POST /api/security` can set the first password without auth.
 - Once a password exists, changing it requires auth.
 - Most routes require auth after the password is configured.
@@ -50,4 +50,5 @@ This is LAN hardening only:
 - Basic Auth is simple and embedded-friendly.
 - Do not expose the robot Web UI directly to the public Internet.
 - Prefer a trusted LAN/VPN if remote access is needed.
+- Set a Web password immediately after first setup, especially before joining shared Wi-Fi networks.
 - Treat SD-card physical access as trusted access.

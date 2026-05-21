@@ -228,6 +228,32 @@ static bool connectWifiFromConfig(const ConfigManager& cfg) {
   return false;
 }
 
+static bool shouldStartSetupAccessPoint(const ConfigManager& cfg, bool sdConfigExists) {
+  const auto& c = cfg.config();
+  if (!sdConfigExists) return true;
+  if (c.wifiEnabled) return true;
+  return false;
+}
+
+static bool startSetupAccessPoint(const ConfigManager& cfg) {
+  String apName = cfg.config().robotId.length() ? cfg.config().robotId : "stackchan";
+  apName += "-setup";
+  apName.replace(" ", "-");
+  Serial.print("WiFi: starting setup access point ssid=");
+  Serial.println(apName);
+  WiFi.mode(WIFI_AP);
+  WiFi.setSleep(false);
+  bool ok = WiFi.softAP(apName.c_str());
+  if (!ok) {
+    Serial.println("WiFi: setup access point failed");
+    return false;
+  }
+  Serial.print("WiFi: setup access point ip=");
+  Serial.println(WiFi.softAPIP());
+  drawStatus(WiFi.softAPIP().toString().c_str());
+  return true;
+}
+
 void setup() {
   Serial.begin(115200);
   M5StackChan.begin();
@@ -276,6 +302,7 @@ void setup() {
       memory.compactIfNeeded();
     }
     bool cfg_ok = configManager.begin();
+    bool runtime_config_exists = SD.exists("/app/StackChan/config/runtime.json");
     Serial.printf("ConfigManager init: %s\n", cfg_ok ? "ok" : "failed");
     configManager.printRedactedStatus(Serial);
     g_speaker_volume = configManager.config().speakerVolume;
@@ -288,10 +315,22 @@ void setup() {
                   static_cast<unsigned>(configManager.config().micNoiseFilterLevel));
     toolGateway.begin(configManager.gatewayConfig());
     bool wifi_ok = connectWifiFromConfig(configManager);
-    if (wifi_ok) {
-      webConfig.begin(configManager.webConfig());
+    bool setup_ap_ok = false;
+    if (!wifi_ok && shouldStartSetupAccessPoint(configManager, runtime_config_exists)) {
+      setup_ap_ok = startSetupAccessPoint(configManager);
+    }
+    if (wifi_ok || setup_ap_ok) {
+      if (wifi_ok) {
+        webConfig.begin(configManager.webConfig());
+      } else {
+        WebConfigServer::Config setupWeb;
+        setupWeb.enabled = true;
+        setupWeb.port = 80;
+        setupWeb.robotId = configManager.config().robotId.c_str();
+        webConfig.begin(setupWeb);
+      }
       const auto& cfg = configManager.config();
-      if (cfg.geminiEnabled) {
+      if (wifi_ok && cfg.geminiEnabled) {
         if (configManager.hasGeminiApiKey()) {
           Serial.println("Gemini: configured lazy");
           gemini.setModel(cfg.geminiModel);
@@ -306,8 +345,10 @@ void setup() {
         } else {
           Serial.println("Gemini: enabled but api key missing");
         }
-      } else {
+      } else if (wifi_ok) {
         Serial.println("Gemini: disabled");
+      } else {
+        Serial.println("Gemini: skipped in setup access point mode");
       }
     } else {
       WebConfigServer::Config webOff;

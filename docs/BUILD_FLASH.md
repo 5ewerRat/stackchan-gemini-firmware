@@ -38,6 +38,16 @@ pio run -e m5stack-cores3 -t upload --upload-port /dev/ttyACM0
 
 If upload fails with permissions, add your user to the appropriate serial group or fix udev rules. A temporary local workaround is to adjust device-node permissions, but a persistent group/udev setup is better.
 
+## First setup
+
+If Wi-Fi credentials are missing or the configured network cannot be reached, the firmware starts an open setup access point named `<robot_id>-setup` and serves the Web UI at:
+
+```text
+http://192.168.4.1/
+```
+
+Use the Web UI to set Wi-Fi SSID/password, Gemini API key, and Web password. Reboot after changing network settings.
+
 ## Serial monitor
 
 ```bash

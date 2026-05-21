@@ -169,9 +169,9 @@ String GeminiToolBridge::handleFunctionCall(const String& name, const JsonVarian
     String question = String((const char*)(args["question"] | ""));
     String q = question;
     q.toLowerCase();
-    if (q.indexOf("pin") >= 0 || q.indexOf("пин") >= 0 || q.indexOf("парол") >= 0 ||
-        q.indexOf("password") >= 0 || q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 ||
-        q.indexOf("код") >= 0 || q.indexOf("запом") >= 0 || q.indexOf("remember") >= 0) {
+    if (q.indexOf("pin") >= 0 || q.indexOf("password") >= 0 ||
+        q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 ||
+        q.indexOf("code") >= 0 || q.indexOf("remember") >= 0) {
       JsonDocument blocked;
       blocked["ok"] = false;
       blocked["blocked"] = true;
@@ -218,9 +218,9 @@ GeminiToolBridge::LocalStatus GeminiToolBridge::handleLocal(
     response["source"] = "local_active_dialogue_context_only";
     response["query"] = query;
 
-    if (q.indexOf("pin") >= 0 || q.indexOf("пин") >= 0 || q.indexOf("парол") >= 0 ||
-        q.indexOf("password") >= 0 || q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 ||
-        q.indexOf("секрет") >= 0 || q.indexOf("код") >= 0) {
+    if (q.indexOf("pin") >= 0 || q.indexOf("password") >= 0 ||
+        q.indexOf("token") >= 0 || q.indexOf("secret") >= 0 ||
+        q.indexOf("code") >= 0) {
       response["private_query"] = true;
       response["active_context"] = "";
       response["instruction"] = "search_memory never exposes private values. If and only if the user explicitly asks to recall a saved private code/PIN/password, call recall_private_memory locally instead.";
@@ -361,7 +361,7 @@ GeminiToolBridge::LocalStatus GeminiToolBridge::handleLocal(
   }
 
   if (name == "look_with_camera") {
-    const char* question = args["question"] | "Что видно на снимке?";
+    const char* question = args["question"] | "What is visible in this snapshot?";
     emotion_.setEmotion("looking");
     if (!gemini_ || !gemini_->isReady()) {
       response["ok"] = false;
@@ -377,7 +377,7 @@ GeminiToolBridge::LocalStatus GeminiToolBridge::handleLocal(
       response["camera_enabled"] = camera_.enabled();
       return LocalStatus::Error;
     }
-    String prompt = "Это один кадр с моей камеры StackChan. Ответь по-русски кратко и по делу. Вопрос пользователя: ";
+    String prompt = "This is one frame from my StackChan camera. Answer concisely and practically in the user's language. User question: ";
     prompt += question;
     bool sent = gemini_->sendImageTurn(imageBase64, prompt);
     // The bright white looking LEDs are useful only while the camera is actively

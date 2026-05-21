@@ -145,8 +145,8 @@ bool MemoryStore::recallPrivateMemory(const String& query, String& kind, String&
     String hay = kindLower + " " + labelLower;
     bool match = !q.length() || hay.indexOf(q) >= 0 || q.indexOf(kindLower) >= 0 || q.indexOf(labelLower) >= 0;
     if (!match) {
-      if ((q.indexOf("pin") >= 0 || q.indexOf("пин") >= 0) && kindLower.indexOf("pin") >= 0) match = true;
-      if ((q.indexOf("код") >= 0 || q.indexOf("code") >= 0) && kindLower.indexOf("code") >= 0) match = true;
+      if (q.indexOf("pin") >= 0 && kindLower.indexOf("pin") >= 0) match = true;
+      if (q.indexOf("code") >= 0 && kindLower.indexOf("code") >= 0) match = true;
     }
     if (!match) continue;
     kind = candKind;
@@ -317,8 +317,8 @@ String MemoryStore::summariesPreview(size_t maxChars) {
 }
 
 String MemoryStore::dateForRelativeQuery(const String& queryLower) const {
-  if (queryLower.indexOf("сегодня") >= 0 || queryLower.indexOf("today") >= 0) return _todayKey;
-  if (queryLower.indexOf("вчера") >= 0 || queryLower.indexOf("yesterday") >= 0) {
+  if (queryLower.indexOf("today") >= 0) return _todayKey;
+  if (queryLower.indexOf("yesterday") >= 0) {
     struct tm timeInfo;
     if (getLocalTime(&timeInfo, 10)) {
       time_t t = mktime(&timeInfo) - 24 * 60 * 60;
@@ -369,14 +369,13 @@ int MemoryStore::scoreMemoryText(const String& queryLower, const String& textLow
     }
     start = end + 1;
   }
-  if ((queryLower.indexOf("люд") >= 0 || queryLower.indexOf("человек") >= 0) &&
-      (tagsLower.indexOf("people") >= 0 || textLower.indexOf("человек") >= 0 || textLower.indexOf("люд") >= 0)) score += 6;
-  if ((queryLower.indexOf("комнат") >= 0 || queryLower.indexOf("видел") >= 0 || queryLower.indexOf("смотр") >= 0) &&
+  if ((queryLower.indexOf("people") >= 0 || queryLower.indexOf("person") >= 0) &&
+      (tagsLower.indexOf("people") >= 0 || textLower.indexOf("person") >= 0 || textLower.indexOf("people") >= 0)) score += 6;
+  if ((queryLower.indexOf("room") >= 0 || queryLower.indexOf("saw") >= 0 || queryLower.indexOf("look") >= 0) &&
       (tagsLower.indexOf("vision") >= 0 || tagsLower.indexOf("room") >= 0 || tagsLower.indexOf("search") >= 0)) score += 5;
-  if ((queryLower.indexOf("цвет") >= 0 || queryLower.indexOf("одеж") >= 0 || queryLower.indexOf("футбол") >= 0) &&
-      (textLower.indexOf("красн") >= 0 || textLower.indexOf("бел") >= 0 || textLower.indexOf("футбол") >= 0)) score += 4;
-  if (queryLower.indexOf("погод") >= 0 && textLower.indexOf("погод") >= 0) score += 6;
-  if (queryLower.indexOf("варшав") >= 0 && textLower.indexOf("варшав") >= 0) score += 6;
+  if ((queryLower.indexOf("color") >= 0 || queryLower.indexOf("clothes") >= 0 || queryLower.indexOf("shirt") >= 0) &&
+      (textLower.indexOf("red") >= 0 || textLower.indexOf("white") >= 0 || textLower.indexOf("shirt") >= 0)) score += 4;
+  if (queryLower.indexOf("weather") >= 0 && textLower.indexOf("weather") >= 0) score += 6;
   return score;
 }
 
@@ -845,16 +844,15 @@ bool MemoryStore::readDialogueLine(const String& line, String& ts, String& sessi
 String MemoryStore::redactSensitiveForRuntime(const String& text) const {
   String lower = text;
   lower.toLowerCase();
-  bool sensitive = lower.indexOf("пин") >= 0 || lower.indexOf("pin") >= 0 ||
-                   lower.indexOf("парол") >= 0 || lower.indexOf("password") >= 0 ||
+  bool sensitive = lower.indexOf("pin") >= 0 || lower.indexOf("password") >= 0 ||
                    lower.indexOf("token") >= 0 || lower.indexOf("secret") >= 0 ||
-                   lower.indexOf("секрет") >= 0 || lower.indexOf("код") >= 0 ||
-                   lower.indexOf("адрес") >= 0 || lower.indexOf("квартир") >= 0;
+                   lower.indexOf("code") >= 0 || lower.indexOf("address") >= 0 ||
+                   lower.indexOf("apartment") >= 0;
   if (!sensitive) return text;
 
-  if (lower.indexOf("пин") >= 0 || lower.indexOf("pin") >= 0 || lower.indexOf("парол") >= 0 ||
-      lower.indexOf("password") >= 0 || lower.indexOf("token") >= 0 || lower.indexOf("secret") >= 0 ||
-      lower.indexOf("секрет") >= 0 || lower.indexOf("код") >= 0) {
+  if (lower.indexOf("pin") >= 0 || lower.indexOf("password") >= 0 ||
+      lower.indexOf("token") >= 0 || lower.indexOf("secret") >= 0 ||
+      lower.indexOf("code") >= 0) {
     return "[PRIVATE_CODE_REDACTED: user discussed a private code/PIN/password; do not repeat it aloud or expose it to tools]";
   }
   return "[PRIVATE_ADDRESS_REDACTED: user discussed a private address/location; do not repeat it aloud or expose it to tools]";

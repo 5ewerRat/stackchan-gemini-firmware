@@ -18,12 +18,12 @@ This repository is intended for developers and hobbyists who are comfortable wit
 
 This is an experimental developer firmware tree. The defaults are conservative:
 
-- Wi-Fi: disabled until configured on SD.
-- Gemini: disabled until configured on SD and a Gemini API key is provided.
-- Web UI: disabled until configured on SD and Wi-Fi connects.
+- Wi-Fi: uses configured station credentials when available; otherwise starts a simple setup access point.
+- Gemini: disabled until configured on SD/Web UI and a Gemini API key is provided.
+- Web UI: available on the LAN after Wi-Fi connects, or at the setup access point IP during first setup.
 - Gateway tools: disabled unless explicitly configured.
 
-The firmware currently does not provide a full first-boot setup AP. For a blank device, prepare the SD card config first or use serial/local development workflows.
+On first setup or after Wi-Fi failure, the firmware starts an open setup access point named `<robot_id>-setup` and serves the Web UI at `http://192.168.4.1/`. Use it to enter Wi-Fi SSID/password, Gemini key, and a Web password, then reboot.
 
 ## Hardware
 
@@ -45,7 +45,7 @@ Target environment:
 2. Clone the repository.
 
    ```bash
-   git clone git@github.com:taranton/stackchan-gemini-firmware.git
+   git clone https://github.com/taranton/stackchan-gemini-firmware.git
    cd stackchan-gemini-firmware
    ```
 
@@ -69,7 +69,7 @@ Target environment:
    pio device monitor -b 115200
    ```
 
-7. If Wi-Fi and Web UI are enabled, open the robot IP in a browser and set a Web password in the **Web security** section.
+7. If Wi-Fi connects, open the robot IP in a browser. If Wi-Fi is not configured or fails, join the `<robot_id>-setup` access point and open `http://192.168.4.1/`. Set a Web password in the **Web security** section before using the robot on a shared LAN.
 
 ## Configuration overview
 
