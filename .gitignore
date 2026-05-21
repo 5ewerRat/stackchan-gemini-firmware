@@ -1,0 +1,15 @@
+# PlatformIO build output
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Generated firmware/build artifacts
+*.bin
+*.elf
+*.map
+*.hex
+compile_commands.json
+
+# Local/editor files
+.vscode/
+.DS_Store

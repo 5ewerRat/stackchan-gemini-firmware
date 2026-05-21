@@ -4,6 +4,8 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <WiFi.h>
+#include <mbedtls/base64.h>
+#include <mbedtls/sha256.h>
 #include <math.h>
 
 extern volatile bool g_voice_toggle_requested;
@@ -18,6 +20,8 @@ constexpr const char* kSummaryConfigPath = "/app/StackChan/config/summary.json";
 constexpr const char* kSystemPromptPath = "/app/StackChan/prompts/system.txt";
 constexpr const char* kPersonaPromptPath = "/app/StackChan/prompts/persona.txt";
 constexpr const char* kSecretsMetaPath = "/app/StackChan/secrets/meta.jsonl";
+constexpr const char* kWebPasswordHashPath = "/app/StackChan/secrets/web_password_sha256.txt";
+constexpr const char* kWebAuthUser = "stackchan";
 
 // LTR-553ALS-WA on CoreS3 internal I2C.  This diagnostic helper deliberately
 // does not drive any wake/stop behavior; it only exposes raw values so we can
@@ -233,6 +237,7 @@ const char kIndexHtml[] PROGMEM = R"HTML(
     <section class="card"><h2>Runtime</h2><div class="row"><div><label>Robot ID</label><input id="robotId" value="stackchan"></div><div><label>Gemini model</label><input id="geminiModel" placeholder="models/gemini-3.1-flash-live-preview"></div></div><label>Gemini voice</label><select id="geminiVoice"><option value="Puck">Puck — upbeat</option><option value="Charon">Charon — informative</option><option value="Kore">Kore — firm</option><option value="Fenrir">Fenrir — excitable</option><option value="Aoede">Aoede — breezy</option><option value="Zephyr">Zephyr — bright</option><option value="Leda">Leda — youthful</option><option value="Orus">Orus — firm</option><option value="Callirrhoe">Callirrhoe — easy-going</option><option value="Autonoe">Autonoe — bright</option><option value="Enceladus">Enceladus — breathy</option><option value="Iapetus">Iapetus</option><option value="Umbriel">Umbriel</option><option value="Algieba">Algieba</option><option value="Despina">Despina</option><option value="Erinome">Erinome</option><option value="Algenib">Algenib</option><option value="Rasalgethi">Rasalgethi</option><option value="Laomedeia">Laomedeia</option><option value="Achernar">Achernar</option><option value="Alnilam">Alnilam</option><option value="Schedar">Schedar</option><option value="Gacrux">Gacrux</option><option value="Pulcherrima">Pulcherrima</option><option value="Achird">Achird</option><option value="Zubenelgenubi">Zubenelgenubi</option><option value="Vindemiatrix">Vindemiatrix</option><option value="Sadachbia">Sadachbia</option><option value="Sadaltager">Sadaltager</option><option value="Sulafat">Sulafat</option></select><p class="muted">Голос применяется к новой Gemini Live сессии после перезагрузки/нового подключения.</p><label>Wi‑Fi SSID</label><input id="wifiSsid" placeholder="SSID сохраняется, пароль отдельно в secrets"><label>Gateway Base URL</label><input id="gatewayUrl" placeholder="http://192.168.0.248:8811/stackchan"><label>Громкость динамика: <span id="speakerVolumeLabel">200</span> / 255</label><input id="speakerVolume" type="range" min="0" max="255" step="1" value="200" oninput="speakerVolumeLabel.textContent=this.value"><div class="row"><div><label>Mic gain: <span id="micMagnificationLabel">16</span> / 24</label><input id="micMagnification" type="range" min="1" max="24" step="1" value="16" oninput="micMagnificationLabel.textContent=this.value"><p class="muted">Безопасный runtime gain. Базовый уровень 16; для тестов пробуй 20→22→24.</p></div><div><label>Mic noise filter: <span id="micNoiseFilterLabel">0</span> / 4</label><input id="micNoiseFilter" type="range" min="0" max="4" step="1" value="0" oninput="micNoiseFilterLabel.textContent=this.value"><p class="muted">Базовый уровень 0. Повышать осторожно: фильтр может съедать тихую речь.</p></div></div><div class="row"><div><label>VAD prefix padding: <span id="vadPrefixPaddingLabel">800</span> ms</label><input id="vadPrefixPadding" type="range" min="0" max="2000" step="100" value="800" oninput="vadPrefixPaddingLabel.textContent=this.value"><p class="muted">Буфер перед стартом речи. Помогает не терять начало фразы.</p></div><div><label>VAD silence duration: <span id="vadSilenceDurationLabel">900</span> ms</label><input id="vadSilenceDuration" type="range" min="100" max="3000" step="100" value="900" oninput="vadSilenceDurationLabel.textContent=this.value"><p class="muted">Пауза до завершения реплики. Больше — меньше обрывов, но медленнее ответ.</p></div></div><div class="row"><label><input id="vadStartSensitivityHigh" type="checkbox" checked> VAD start sensitivity high</label><label><input id="vadEndSensitivityLow" type="checkbox" checked> VAD end sensitivity low</label><label><input id="vadTurnIncludesAllInput" type="checkbox" checked> Turn includes all input</label></div><div class="row"><label><input id="wifiEnabled" type="checkbox"> Wi‑Fi enabled</label><label><input id="webEnabled" type="checkbox"> Web UI enabled</label><label><input id="geminiEnabled" type="checkbox"> Gemini enabled</label><label><input id="gatewayEnabled" type="checkbox"> Gateway enabled</label></div><button onclick="saveRuntime(false)">Сохранить runtime</button><button onclick="saveRuntime(true)" class="danger">Сохранить и перезагрузить</button><button onclick="loadRuntime()" class="secondary">Загрузить runtime</button><p class="muted">Громкость и большинство runtime-настроек применяются после перезагрузки. Кнопка «Сохранить и перезагрузить» сначала пишет настройки на SD, потом ребутит робота.</p></section>
     <section class="card"><h2>Gateway</h2><button onclick="loadTools()" class="secondary">Проверить tools</button><pre id="tools"></pre></section>
     <section class="card"><h2>Секреты</h2><div class="row"><div><label>Gemini API key</label><input id="geminiKey" type="password" placeholder="ввести/заменить"></div><div><label>Gateway token</label><input id="gatewayToken" type="password" placeholder="опционально"></div></div><button onclick="saveSecrets()" class="danger">Сохранить секреты</button><p class="muted">API никогда не возвращает значения секретов, только set/missing.</p></section>
+    <section class="card"><h2>Web security</h2><p class="muted">If no Web password is set, the local UI is open. After setting one, browser/API access uses HTTP Basic auth with user <code>stackchan</code>.</p><label>New Web password</label><input id="webPassword" type="password" placeholder="set or change password"><button onclick="saveWebPassword()" class="danger">Set Web password</button><p class="muted">Stored on SD as SHA-256, not returned by the API.</p></section>
     <section class="card"><h2>Дополнительные промпты</h2><p class="muted">Это SD/Web overlay, который добавляется к базовой firmware-инструкции StackChan. Базовый prompt с правилами камеры, поиска, головы и safety здесь не показывается и не заменяется. Изменения применяются к следующей Gemini Live сессии/подключению.</p><label>Additional system overlay</label><textarea id="systemPrompt"></textarea><label>Persona / style overlay</label><textarea id="personaPrompt"></textarea><button onclick="savePrompts()">Сохранить overlay</button><button onclick="loadPrompts()" class="secondary">Загрузить</button></section>
     <section class="card"><h2>Память</h2><label>Summary model</label><input id="summaryModel" placeholder="gemini-flash-latest"><button onclick="saveSummaryConfig()" class="secondary">Сохранить модель summary</button><button onclick="loadMemory()" class="secondary">Контекст</button><button onclick="loadDialogues()" class="secondary">Диалоги</button><button onclick="loadSummaries()" class="secondary">Summary</button><label>Memory search</label><input id="memoryQuery" placeholder="кого ты видел сегодня?"><button onclick="searchMemory()" class="secondary">Search memory</button><button onclick="loadMemoryStats()" class="secondary">Статистика</button><button onclick="runSummarize()">Саммаризация</button><button onclick="runVectorize()">Векторизация</button><p class="muted">Summary v2 вызывает Gemini Flash/Lite с SD API key. Обычные числа/даты/model IDs сохраняются точно; private PIN/code/password/address остаются только маркерами и private-memory.</p><pre id="memory"></pre></section>
   </div>
@@ -246,6 +251,7 @@ async function saveRuntime(reboot){show('status',await jpost('/api/runtime',{rob
 async function loadConfig(){await loadRuntime()}
 async function saveConfig(){await saveRuntime()}
 async function saveSecrets(){show('status',await jpost('/api/secrets',{gemini_api_key:geminiKey.value,gateway_token:gatewayToken.value}));geminiKey.value='';gatewayToken.value=''}
+async function saveWebPassword(){show('status',await jpost('/api/security',{web_password:webPassword.value}));webPassword.value=''}
 async function loadPrompts(){const p=await jget('/api/prompts');systemPrompt.value=p.system_prompt||'';personaPrompt.value=p.persona_prompt||''}
 async function savePrompts(){show('status',await jpost('/api/prompts',{system_prompt:systemPrompt.value,persona_prompt:personaPrompt.value}))}
 async function loadSummaryConfig(){const c=await jget('/api/memory/summary-config');summaryModel.value=c.model||'gemini-flash-latest'}
@@ -278,6 +284,8 @@ bool WebConfigServer::begin(const Config& config) {
   }
   // WebServer is not copy-assignable; keep the fixed constructor port for now.
   // Config.port is retained for the future Wi-Fi/config-loader step.
+  const char* headers[] = {"Authorization"};
+  server_.collectHeaders(headers, 1);
   registerRoutes();
   server_.begin();
   enabled_ = true;
@@ -289,46 +297,104 @@ void WebConfigServer::loop() {
 }
 
 void WebConfigServer::registerRoutes() {
-  server_.on("/", HTTP_GET, [this]() { handleIndex(); });
-  server_.on("/sensors", HTTP_GET, [this]() { handleSensorsPage(); });
-  server_.on("/api/status", HTTP_GET, [this]() { handleStatus(); });
-  server_.on("/api/runtime", HTTP_GET, [this]() { handleRuntimeGet(); });
-  server_.on("/api/runtime", HTTP_POST, [this]() { handleRuntimeSave(); });
-  server_.on("/api/config", HTTP_GET, [this]() { handleConfigGet(); });
-  server_.on("/api/config", HTTP_POST, [this]() { handleConfigSave(); });
-  server_.on("/api/secrets", HTTP_POST, [this]() { handleSecretSave(); });
-  server_.on("/api/prompts", HTTP_GET, [this]() { handlePromptsGet(); });
-  server_.on("/api/prompts", HTTP_POST, [this]() { handlePromptsSave(); });
-  server_.on("/api/memory/recent", HTTP_GET, [this]() { handleMemoryRecent(); });
-  server_.on("/api/memory/dialogues", HTTP_GET, [this]() { handleMemoryDialogues(); });
-  server_.on("/api/memory/summaries", HTTP_GET, [this]() { handleMemorySummaries(); });
-  server_.on("/api/memory/search", HTTP_GET, [this]() { handleMemorySearch(); });
-  server_.on("/api/memory/search", HTTP_POST, [this]() { handleMemorySearch(); });
-  server_.on("/api/memory/stats", HTTP_GET, [this]() { handleMemoryStats(); });
-  server_.on("/api/memory/summary-config", HTTP_GET, [this]() { handleMemorySummaryConfigGet(); });
-  server_.on("/api/memory/summary-config", HTTP_POST, [this]() { handleMemorySummaryConfigSave(); });
-  server_.on("/api/memory/summarize", HTTP_POST, [this]() { handleMemorySummarize(); });
-  server_.on("/api/memory/vectorize", HTTP_POST, [this]() { handleMemoryVectorize(); });
-  server_.on("/api/gateway/tools", HTTP_GET, [this]() { handleGatewayTools(); });
-  server_.on("/api/emotion", HTTP_GET, [this]() { handleEmotion(); });
-  server_.on("/api/emotion", HTTP_POST, [this]() { handleEmotion(); });
-  server_.on("/api/servo/status", HTTP_GET, [this]() { handleServoStatus(); });
-  server_.on("/api/servo/move", HTTP_POST, [this]() { handleServoMove(); });
-  server_.on("/api/servo/gesture", HTTP_GET, [this]() { handleServoGesture(); });
-  server_.on("/api/servo/gesture", HTTP_POST, [this]() { handleServoGesture(); });
-  server_.on("/api/voice/toggle", HTTP_GET, [this]() { handleVoiceToggle(); });
-  server_.on("/api/voice/toggle", HTTP_POST, [this]() { handleVoiceToggle(); });
-  server_.on("/api/gemini/text", HTTP_GET, [this]() { handleGeminiText(); });
-  server_.on("/api/gemini/text", HTTP_POST, [this]() { handleGeminiText(); });
-  server_.on("/api/gemini/look", HTTP_GET, [this]() { handleGeminiLook(); });
-  server_.on("/api/gemini/look", HTTP_POST, [this]() { handleGeminiLook(); });
-  server_.on("/api/camera/status", HTTP_GET, [this]() { handleCameraStatus(); });
-  server_.on("/api/camera/capture", HTTP_GET, [this]() { handleCameraCapture(); });
-  server_.on("/api/camera/capture", HTTP_POST, [this]() { handleCameraCapture(); });
-  server_.on("/api/camera/jpeg", HTTP_GET, [this]() { handleCameraJpeg(); });
-  server_.on("/api/camera/latest.jpg", HTTP_GET, [this]() { handleCameraJpeg(); });
-  server_.on("/api/sensors", HTTP_GET, [this]() { handleSensors(); });
-  server_.onNotFound([this]() { handleNotFound(); });
+  server_.on("/", HTTP_GET, [this]() { if (requireAuth()) handleIndex(); });
+  server_.on("/sensors", HTTP_GET, [this]() { if (requireAuth()) handleSensorsPage(); });
+  server_.on("/api/security", HTTP_GET, [this]() { handleSecurityGet(); });
+  server_.on("/api/security", HTTP_POST, [this]() { handleSecuritySave(); });
+  server_.on("/api/status", HTTP_GET, [this]() { if (requireAuth()) handleStatus(); });
+  server_.on("/api/runtime", HTTP_GET, [this]() { if (requireAuth()) handleRuntimeGet(); });
+  server_.on("/api/runtime", HTTP_POST, [this]() { if (requireAuth()) handleRuntimeSave(); });
+  server_.on("/api/config", HTTP_GET, [this]() { if (requireAuth()) handleConfigGet(); });
+  server_.on("/api/config", HTTP_POST, [this]() { if (requireAuth()) handleConfigSave(); });
+  server_.on("/api/secrets", HTTP_POST, [this]() { if (requireAuth()) handleSecretSave(); });
+  server_.on("/api/prompts", HTTP_GET, [this]() { if (requireAuth()) handlePromptsGet(); });
+  server_.on("/api/prompts", HTTP_POST, [this]() { if (requireAuth()) handlePromptsSave(); });
+  server_.on("/api/memory/recent", HTTP_GET, [this]() { if (requireAuth()) handleMemoryRecent(); });
+  server_.on("/api/memory/dialogues", HTTP_GET, [this]() { if (requireAuth()) handleMemoryDialogues(); });
+  server_.on("/api/memory/summaries", HTTP_GET, [this]() { if (requireAuth()) handleMemorySummaries(); });
+  server_.on("/api/memory/search", HTTP_GET, [this]() { if (requireAuth()) handleMemorySearch(); });
+  server_.on("/api/memory/search", HTTP_POST, [this]() { if (requireAuth()) handleMemorySearch(); });
+  server_.on("/api/memory/stats", HTTP_GET, [this]() { if (requireAuth()) handleMemoryStats(); });
+  server_.on("/api/memory/summary-config", HTTP_GET, [this]() { if (requireAuth()) handleMemorySummaryConfigGet(); });
+  server_.on("/api/memory/summary-config", HTTP_POST, [this]() { if (requireAuth()) handleMemorySummaryConfigSave(); });
+  server_.on("/api/memory/summarize", HTTP_POST, [this]() { if (requireAuth()) handleMemorySummarize(); });
+  server_.on("/api/memory/vectorize", HTTP_POST, [this]() { if (requireAuth()) handleMemoryVectorize(); });
+  server_.on("/api/gateway/tools", HTTP_GET, [this]() { if (requireAuth()) handleGatewayTools(); });
+  server_.on("/api/emotion", HTTP_GET, [this]() { if (requireAuth()) handleEmotion(); });
+  server_.on("/api/emotion", HTTP_POST, [this]() { if (requireAuth()) handleEmotion(); });
+  server_.on("/api/servo/status", HTTP_GET, [this]() { if (requireAuth()) handleServoStatus(); });
+  server_.on("/api/servo/move", HTTP_POST, [this]() { if (requireAuth()) handleServoMove(); });
+  server_.on("/api/servo/gesture", HTTP_GET, [this]() { if (requireAuth()) handleServoGesture(); });
+  server_.on("/api/servo/gesture", HTTP_POST, [this]() { if (requireAuth()) handleServoGesture(); });
+  server_.on("/api/voice/toggle", HTTP_GET, [this]() { if (requireAuth()) handleVoiceToggle(); });
+  server_.on("/api/voice/toggle", HTTP_POST, [this]() { if (requireAuth()) handleVoiceToggle(); });
+  server_.on("/api/gemini/text", HTTP_GET, [this]() { if (requireAuth()) handleGeminiText(); });
+  server_.on("/api/gemini/text", HTTP_POST, [this]() { if (requireAuth()) handleGeminiText(); });
+  server_.on("/api/gemini/look", HTTP_GET, [this]() { if (requireAuth()) handleGeminiLook(); });
+  server_.on("/api/gemini/look", HTTP_POST, [this]() { if (requireAuth()) handleGeminiLook(); });
+  server_.on("/api/camera/status", HTTP_GET, [this]() { if (requireAuth()) handleCameraStatus(); });
+  server_.on("/api/camera/capture", HTTP_GET, [this]() { if (requireAuth()) handleCameraCapture(); });
+  server_.on("/api/camera/capture", HTTP_POST, [this]() { if (requireAuth()) handleCameraCapture(); });
+  server_.on("/api/camera/jpeg", HTTP_GET, [this]() { if (requireAuth()) handleCameraJpeg(); });
+  server_.on("/api/camera/latest.jpg", HTTP_GET, [this]() { if (requireAuth()) handleCameraJpeg(); });
+  server_.on("/api/sensors", HTTP_GET, [this]() { if (requireAuth()) handleSensors(); });
+  server_.onNotFound([this]() { if (requireAuth()) handleNotFound(); });
+}
+
+
+String WebConfigServer::sha256Hex(const String& value) {
+  uint8_t hash[32];
+  mbedtls_sha256_context ctx;
+  mbedtls_sha256_init(&ctx);
+  mbedtls_sha256_starts(&ctx, 0);
+  mbedtls_sha256_update(&ctx, reinterpret_cast<const unsigned char*>(value.c_str()), value.length());
+  mbedtls_sha256_finish(&ctx, hash);
+  mbedtls_sha256_free(&ctx);
+  char out[65];
+  for (int i = 0; i < 32; ++i) snprintf(out + i * 2, 3, "%02x", hash[i]);
+  out[64] = '\0';
+  return String(out);
+}
+
+bool WebConfigServer::webPasswordIsSet() { return fileExists(kWebPasswordHashPath); }
+
+bool WebConfigServer::decodeBasicCredentials(String& user, String& password) {
+  String auth = server_.header("Authorization");
+  if (!auth.startsWith("Basic ")) return false;
+  String encoded = auth.substring(6);
+  size_t outLen = 0;
+  unsigned char decoded[192];
+  int rc = mbedtls_base64_decode(decoded, sizeof(decoded) - 1, &outLen,
+                                 reinterpret_cast<const unsigned char*>(encoded.c_str()), encoded.length());
+  if (rc != 0 || outLen == 0 || outLen >= sizeof(decoded)) return false;
+  decoded[outLen] = 0;
+  String pair(reinterpret_cast<char*>(decoded));
+  int sep = pair.indexOf(':');
+  if (sep <= 0) return false;
+  user = pair.substring(0, sep);
+  password = pair.substring(sep + 1);
+  return true;
+}
+
+bool WebConfigServer::isAuthorized() {
+  if (!webPasswordIsSet()) return true;
+  String user, password;
+  if (!decodeBasicCredentials(user, password)) return false;
+  if (user != kWebAuthUser) return false;
+  String stored = readTextFile(kWebPasswordHashPath, 128);
+  stored.trim();
+  return stored.length() == 64 && sha256Hex(password) == stored;
+}
+
+void WebConfigServer::sendAuthRequired() {
+  server_.sendHeader("WWW-Authenticate", "Basic realm=\"StackChan\"");
+  server_.send(401, "application/json", "{\"ok\":false,\"error\":\"auth_required\"}");
+}
+
+bool WebConfigServer::requireAuth() {
+  if (isAuthorized()) return true;
+  sendAuthRequired();
+  return false;
 }
 
 void WebConfigServer::sendJson(int code, JsonDocument& doc) {
@@ -343,6 +409,40 @@ void WebConfigServer::handleIndex() {
   server_.send_P(200, "text/html; charset=utf-8", kIndexHtml);
 }
 
+
+void WebConfigServer::handleSecurityGet() {
+  if (!requireAuth()) return;
+  JsonDocument doc;
+  doc["ok"] = true;
+  doc["auth_enabled"] = webPasswordIsSet();
+  doc["username"] = kWebAuthUser;
+  doc["password"] = webPasswordIsSet() ? "set" : "missing";
+  sendJson(200, doc);
+}
+
+void WebConfigServer::handleSecuritySave() {
+  if (webPasswordIsSet() && !requireAuth()) return;
+  JsonDocument in;
+  DeserializationError err = deserializeJson(in, readBody());
+  JsonDocument out;
+  const char* password = in["web_password"] | "";
+  if (err || !password || strlen(password) < 8 || strlen(password) > 96) {
+    out["ok"] = false;
+    out["error"] = "password_must_be_8_to_96_chars";
+    sendJson(400, out);
+    return;
+  }
+  fs_.mkdir("/app");
+  fs_.mkdir("/app/StackChan");
+  fs_.mkdir(kSecretDir);
+  bool ok = writeTextFile(kWebPasswordHashPath, sha256Hex(String(password)) + "\n");
+  out["ok"] = ok;
+  out["auth_enabled"] = ok;
+  out["username"] = kWebAuthUser;
+  out["password"] = ok ? "set" : "save_failed";
+  sendJson(ok ? 200 : 500, out);
+}
+
 void WebConfigServer::handleStatus() {
   JsonDocument doc;
   doc["ok"] = true;
@@ -350,6 +450,7 @@ void WebConfigServer::handleStatus() {
   doc["gemini_voice"] = readRuntimeString("gemini_voice", "Puck");
   doc["web_enabled"] = enabled_;
   doc["gateway_enabled"] = gateway_.isEnabled();
+  doc["web_auth_enabled"] = webPasswordIsSet();
   doc["sd_config_dir"] = fileExists(kConfigDir) ? "present" : "missing";
   doc["gemini_api_key"] = fileExists("/app/StackChan/secrets/gemini_api_key.txt") ? "set" : "missing";
   doc["gateway_token"] = fileExists("/app/StackChan/secrets/gateway_token.txt") ? "set" : "missing";

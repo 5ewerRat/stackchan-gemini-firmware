@@ -44,11 +44,19 @@ class WebConfigServer {
   void registerRoutes();
   void sendJson(int code, JsonDocument& doc);
   String readBody();
+  String sha256Hex(const String& value);
+  bool webPasswordIsSet();
+  bool decodeBasicCredentials(String& user, String& password);
+  bool isAuthorized();
+  void sendAuthRequired();
+  bool requireAuth();
 
   void handleIndex();
   void handleStatus();
   void handleRuntimeGet();
   void handleRuntimeSave();
+  void handleSecurityGet();
+  void handleSecuritySave();
   void handleConfigGet();
   void handleConfigSave();
   void handleSecretSave();
