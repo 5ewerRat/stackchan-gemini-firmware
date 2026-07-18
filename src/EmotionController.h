@@ -13,21 +13,22 @@ class EmotionController {
 
  private:
   enum class Mode {
-      Neutral,
-      Listening,
-      Speaking,
-      Thinking,
-      Looking,
-      Happy,
-      Angry,
-      Found,
-      Error,
-      Sleep,
-      Rat,
-    };
+        Neutral,
+        Listening,
+        Speaking,
+        Thinking,
+        Looking,
+        Happy,
+        Angry,
+        Found,
+        Error,
+        Sleep,
+        Rat,
+        Sinister,
+      };
 
-  Mode mode_ = Mode::Rat;
-  String current_ = "rat";
+  Mode mode_ = Mode::Sinister;
+  String current_ = "sinister";
   uint32_t lastFrameMs_ = 0;
   uint32_t lastFaceMs_ = 0;
   uint32_t sleepStartedMs_ = 0;
@@ -59,4 +60,5 @@ class EmotionController {
   void renderError();
   void renderSleep();
   void renderRat();
+  void renderSinister();
 };

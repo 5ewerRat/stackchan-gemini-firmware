@@ -24,7 +24,7 @@ int triWave(uint16_t phase, int amplitude) {
 }  // namespace
 
 void EmotionController::begin() {
-  setEmotion("rat");
+  setEmotion("sinister");
 }
 
 bool EmotionController::setEmotion(const String& emotion) {
@@ -82,6 +82,9 @@ void EmotionController::loop() {
     case Mode::Rat:
       renderRat();
       break;
+    case Mode::Sinister:
+      renderSinister();
+      break;
   }
   refresh();
 }
@@ -98,6 +101,7 @@ EmotionController::Mode EmotionController::parseMode(const String& emotion, Stri
   if (e == "error" || e == "confused") { normalized = "error"; return Mode::Error; }
   if (e == "sleep" || e == "sleeping") { normalized = "sleep"; return Mode::Sleep; }
   if (e == "rat") { normalized = "rat"; return Mode::Rat; }
+  if (e == "sinister") { normalized = "sinister"; return Mode::Sinister; }
   normalized = "neutral";
   return Mode::Neutral;
 }
@@ -291,11 +295,58 @@ void EmotionController::renderFace() {
       mouthW = 32;
       mouthH = 4;
       break;
+    case Mode::Sinister:
+      eyeColor = TFT_RED;
+      accent = TFT_DARKGREY;
+      // Sinister blinking pattern
+      closed = ((frame_ / 20) % 6) == 0;
+      mouthW = 72;
+      mouthH = 6;
+      break;
     case Mode::Neutral:
     default:
       // Occasional soft blink in idle.
       closed = ((frame_ / 55) % 18) == 0;
       break;
+  }
+
+  // Sinister-specific features
+  if (mode_ == Mode::Sinister) {
+    // Evil shield/buckler design as border
+    d.drawRect(cx - 90, cy - 90, 180, 180, accent);
+    d.drawRect(cx - 84, cy - 84, 168, 168, accent);
+    
+    // Evil ears - sharper and more aggressive
+    int earTwitch = triWave(frame_ * 8, 5);
+    d.fillTriangle(cx - 100, cy - 70, cx - 85, cy - 50 + earTwitch, cx - 70, cy - 70, TFT_RED);
+    d.fillTriangle(cx + 100, cy - 70, cx + 85, cy - 50 + earTwitch, cx + 70, cy - 70, TFT_RED);
+    
+    // Evil shield symbol on forehead
+    d.fillRect(cx - 10, cy - 70, 20, 3, TFT_RED);
+    d.fillCircle(cx - 7, cy - 67, 2, TFT_RED);
+    d.fillCircle(cx + 7, cy - 67, 2, TFT_RED);
+    
+    // Evil teeth - more menacing
+    d.fillRect(cx - 40, cy + 25, 80, 6, TFT_WHITE);
+    d.fillRect(cx - 36, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx - 28, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx - 20, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx - 12, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx - 4, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx + 4, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx + 12, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx + 20, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx + 28, cy + 25, 6, 6, TFT_DARKGREY);
+    d.fillRect(cx + 36, cy + 25, 6, 6, TFT_DARKGREY);
+    
+    // Evil whiskers with twitching
+    int whiskerTwitch = triWave(frame_ * 12, 5);
+    d.drawLine(cx - 30, cy + 30, cx - 70 + whiskerTwitch, cy + 45, TFT_DARKGREY);
+    d.drawLine(cx + 30, cy + 30, cx + 70 - whiskerTwitch, cy + 45, TFT_DARKGREY);
+    
+    // Sinister eyebrows
+    d.drawLine(cx - 50, cy - 50, cx - 30, cy - 45, TFT_RED);
+    d.drawLine(cx + 50, cy - 50, cx + 30, cy - 45, TFT_RED);
   }
 
   // Subtle cheek/accent dots.
@@ -478,5 +529,18 @@ void EmotionController::renderRat() {
     else if ((i + frame_ / 5) % 11 == 0) local = 60;
     // Brownish color for rat theme
     setLed(i, scale8(100, local), scale8(60, local), local);
+  }
+}
+
+void EmotionController::renderSinister() {
+  // Sinister LED animation: evil red glow pattern
+  uint8_t v = wave8(frame_ * 7, 30, 100);
+  for (uint8_t i = 0; i < kLedCount; ++i) {
+    uint8_t local = v;
+    // Create sinister effect - random red spikes
+    if ((i + frame_ / 4) % 5 == 0) local = 150;
+    else if ((i + frame_ / 6) % 9 == 0) local = 80;
+    // Sinister red color theme
+    setLed(i, local, 0, scale8(50, local));
   }
 }
