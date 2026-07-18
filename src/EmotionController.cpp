@@ -205,8 +205,27 @@ void EmotionController::renderFace() {
   const int cy = h / 2;
   d.fillSprite(TFT_BLACK);
 
-  uint16_t eyeColor = TFT_CYAN;
-  uint16_t accent = TFT_DARKCYAN;
+  // Base sinister rat features - ALL emotions use this as foundation
+  uint16_t baseAccent = TFT_DARKGREY;
+  
+  // Evil shield/buckler design as border (base for all emotions)
+  d.drawRect(cx - 90, cy - 90, 180, 180, baseAccent);
+  d.drawRect(cx - 84, cy - 84, 168, 168, baseAccent);
+  
+  // Evil ears - sharper and more aggressive (base for all emotions)
+  int earTwitch = triWave(frame_ * 8, 5);
+  d.fillTriangle(cx - 100, cy - 70, cx - 85, cy - 50 + earTwitch, cx - 70, cy - 70, TFT_RED);
+  d.fillTriangle(cx + 100, cy - 70, cx + 85, cy - 50 + earTwitch, cx + 70, cy - 70, TFT_RED);
+  
+  // Evil shield symbol on forehead (base for all emotions)
+  d.fillRect(cx - 10, cy - 70, 20, 3, TFT_RED);
+  d.fillCircle(cx - 7, cy - 67, 2, TFT_RED);
+  d.fillCircle(cx + 7, cy - 67, 2, TFT_RED);
+  d.fillRect(cx - 5, cy - 79, 10, 1, TFT_RED);
+
+  // Emotion-specific variables
+  uint16_t eyeColor = TFT_RED;  // Default evil red eyes
+  uint16_t accent = TFT_DARKGREY;
   bool closed = false;
   int pupilDx = triWave(frame_ * 3, 4);
   int pupilDy = 0;
@@ -288,8 +307,8 @@ void EmotionController::renderFace() {
       mouthH = 4;
       break;
     case Mode::Rat:
+      // Enhanced rat features on top of sinister base
       eyeColor = TFT_BROWN;
-      accent = TFT_DARKGREY;
       // Frequent blinking for rat
       closed = ((frame_ / 30) % 8) == 0;
       mouthW = 32;
@@ -310,23 +329,9 @@ void EmotionController::renderFace() {
       break;
   }
 
-  // Sinister-specific features
-  if (mode_ == Mode::Sinister) {
-    // Evil shield/buckler design as border
-    d.drawRect(cx - 90, cy - 90, 180, 180, accent);
-    d.drawRect(cx - 84, cy - 84, 168, 168, accent);
-    
-    // Evil ears - sharper and more aggressive
-    int earTwitch = triWave(frame_ * 8, 5);
-    d.fillTriangle(cx - 100, cy - 70, cx - 85, cy - 50 + earTwitch, cx - 70, cy - 70, TFT_RED);
-    d.fillTriangle(cx + 100, cy - 70, cx + 85, cy - 50 + earTwitch, cx + 70, cy - 70, TFT_RED);
-    
-    // Evil shield symbol on forehead
-    d.fillRect(cx - 10, cy - 70, 20, 3, TFT_RED);
-    d.fillCircle(cx - 7, cy - 67, 2, TFT_RED);
-    d.fillCircle(cx + 7, cy - 67, 2, TFT_RED);
-    
-    // Evil teeth - more menacing
+  // Evil teeth - more menacing (base for all emotions, but varies by emotion)
+  if (mode_ == Mode::Angry || mode_ == Mode::Sinister) {
+    // Extra menacing teeth for angry/sinister
     d.fillRect(cx - 40, cy + 25, 80, 6, TFT_WHITE);
     d.fillRect(cx - 36, cy + 25, 6, 6, TFT_DARKGREY);
     d.fillRect(cx - 28, cy + 25, 6, 6, TFT_DARKGREY);
@@ -338,44 +343,84 @@ void EmotionController::renderFace() {
     d.fillRect(cx + 20, cy + 25, 6, 6, TFT_DARKGREY);
     d.fillRect(cx + 28, cy + 25, 6, 6, TFT_DARKGREY);
     d.fillRect(cx + 36, cy + 25, 6, 6, TFT_DARKGREY);
-    
-    // Evil whiskers with twitching
-    int whiskerTwitch = triWave(frame_ * 12, 5);
-    d.drawLine(cx - 30, cy + 30, cx - 70 + whiskerTwitch, cy + 45, TFT_DARKGREY);
-    d.drawLine(cx + 30, cy + 30, cx + 70 - whiskerTwitch, cy + 45, TFT_DARKGREY);
-    
-    // Sinister eyebrows
-    d.drawLine(cx - 50, cy - 50, cx - 30, cy - 45, TFT_RED);
-    d.drawLine(cx + 50, cy - 50, cx + 30, cy - 45, TFT_RED);
+  } else if (mode_ == Mode::Happy || mode_ == Mode::Found) {
+    // Smoother, less menacing teeth for happy emotions
+    d.fillRect(cx - 30, cy + 25, 60, 4, TFT_WHITE);
+    d.fillRect(cx - 26, cy + 25, 4, 4, TFT_DARKGREY);
+    d.fillRect(cx - 18, cy + 25, 4, 4, TFT_DARKGREY);
+    d.fillRect(cx - 10, cy + 25, 4, 4, TFT_DARKGREY);
+    d.fillRect(cx - 2, cy + 25, 4, 4, TFT_DARKGREY);
+    d.fillRect(cx + 6, cy + 25, 4, 4, TFT_DARKGREY);
+    d.fillRect(cx + 14, cy + 25, 4, 4, TFT_DARKGREY);
+    d.fillRect(cx + 22, cy + 25, 4, 4, TFT_DARKGREY);
+    d.fillRect(cx + 30, cy + 25, 4, 4, TFT_DARKGREY);
+  } else {
+    // Standard menacing teeth for other emotions
+    d.fillRect(cx - 35, cy + 25, 70, 5, TFT_WHITE);
+    d.fillRect(cx - 31, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx - 23, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx - 15, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx - 7, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx + 1, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx + 9, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx + 17, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx + 25, cy + 25, 5, 5, TFT_DARKGREY);
+    d.fillRect(cx + 33, cy + 25, 5, 5, TFT_DARKGREY);
   }
 
-  // Subtle cheek/accent dots.
-  d.fillCircle(cx - 92, cy + 22, 5, accent);
-  d.fillCircle(cx + 92, cy + 22, 5, accent);
-
-  // Rat-specific features
+  // Emotion-specific whiskers
   if (mode_ == Mode::Rat) {
-    // Large rat ears
-    int earTwitch = triWave(frame_ * 8, 5);
-    d.fillEllipse(cx - 80, cy - 60, 25, 40 + earTwitch, TFT_BROWN);
-    d.fillEllipse(cx + 80, cy - 60, 25, 40 + earTwitch, TFT_BROWN);
-    // Inner ear
-    d.fillEllipse(cx - 80, cy - 58, 12, 20 + earTwitch/2, TFT_DARKGREY);
-    d.fillEllipse(cx + 80, cy - 58, 12, 20 + earTwitch/2, TFT_DARKGREY);
-    
-    // Whiskers with twitching
+    // Enhanced rat whiskers
     int whiskerTwitch = triWave(frame_ * 12, 3);
     d.drawLine(cx - 30, cy + 20, cx - 80 + whiskerTwitch, cy + 35, TFT_WHITE);
     d.drawLine(cx - 30, cy + 25, cx - 80 + whiskerTwitch, cy + 40, TFT_WHITE);
     d.drawLine(cx + 30, cy + 20, cx + 80 - whiskerTwitch, cy + 35, TFT_WHITE);
     d.drawLine(cx + 30, cy + 25, cx + 80 - whiskerTwitch, cy + 40, TFT_WHITE);
     
-    // Nose with twitching
+    // Rat nose with twitching
     int noseTwitch = triWave(frame_ * 15, 2);
     d.fillCircle(cx + noseTwitch, cy + 35, 6, TFT_BLACK);
     d.fillCircle(cx - 15, cy + 35, 3, TFT_BLACK);
     d.fillCircle(cx + 15, cy + 35, 3, TFT_BLACK);
+  } else if (mode_ == Mode::Sinister) {
+    // Evil whiskers with twitching
+    int whiskerTwitch = triWave(frame_ * 12, 5);
+    d.drawLine(cx - 30, cy + 30, cx - 70 + whiskerTwitch, cy + 45, TFT_DARKGREY);
+    d.drawLine(cx + 30, cy + 30, cx + 70 - whiskerTwitch, cy + 45, TFT_DARKGREY);
+  } else if (mode_ == Mode::Happy || mode_ == Mode::Found) {
+    // Gentle whiskers for happy emotions
+    int whiskerTwitch = triWave(frame_ * 15, 2);
+    d.drawLine(cx - 25, cy + 30, cx - 60 + whiskerTwitch, cy + 40, accent);
+    d.drawLine(cx + 25, cy + 30, cx + 60 - whiskerTwitch, cy + 40, accent);
+  } else {
+    // Standard whiskers for other emotions
+    int whiskerTwitch = triWave(frame_ * 12, 3);
+    d.drawLine(cx - 30, cy + 30, cx - 70 + whiskerTwitch, cy + 45, TFT_DARKGREY);
+    d.drawLine(cx + 30, cy + 30, cx + 70 - whiskerTwitch, cy + 45, TFT_DARKGREY);
   }
+
+  // Emotion-specific eyebrows
+  if (mode_ == Mode::Angry || mode_ == Mode::Sinister) {
+    // Angry/sinister eyebrows
+    d.drawLine(cx - 50, cy - 50, cx - 30, cy - 45, TFT_RED);
+    d.drawLine(cx + 50, cy - 50, cx + 30, cy - 45, TFT_RED);
+  } else if (mode_ == Mode::Happy || mode_ == Mode::Found) {
+    // Happy eyebrows (arched)
+    d.drawArc(cx - 40, cy - 45, 20, 10, 0, 180, accent);
+    d.drawArc(cx + 40, cy - 45, 20, 10, 0, 180, accent);
+  } else if (mode_ == Mode::Thinking) {
+    // Thinking eyebrows (furrowed)
+    d.drawLine(cx - 45, cy - 48, cx - 25, cy - 42, accent);
+    d.drawLine(cx + 25, cy - 42, cx + 45, cy - 48, accent);
+  } else {
+    // Default eyebrows
+    d.drawLine(cx - 40, cy - 45, cx - 20, cy - 40, accent);
+    d.drawLine(cx + 20, cy - 40, cx + 40, cy - 45, accent);
+  }
+
+  // Subtle cheek/accent dots.
+  d.fillCircle(cx - 92, cy + 22, 5, accent);
+  d.fillCircle(cx + 92, cy + 22, 5, accent);
 
   const int lx = cx - 58;
   const int rx = cx + 58;
