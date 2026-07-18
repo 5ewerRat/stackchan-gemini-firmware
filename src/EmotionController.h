@@ -13,20 +13,21 @@ class EmotionController {
 
  private:
   enum class Mode {
-    Neutral,
-    Listening,
-    Speaking,
-    Thinking,
-    Looking,
-    Happy,
-    Angry,
-    Found,
-    Error,
-    Sleep,
-  };
+      Neutral,
+      Listening,
+      Speaking,
+      Thinking,
+      Looking,
+      Happy,
+      Angry,
+      Found,
+      Error,
+      Sleep,
+      Rat,
+    };
 
-  Mode mode_ = Mode::Neutral;
-  String current_ = "neutral";
+  Mode mode_ = Mode::Rat;
+  String current_ = "rat";
   uint32_t lastFrameMs_ = 0;
   uint32_t lastFaceMs_ = 0;
   uint32_t sleepStartedMs_ = 0;
@@ -45,7 +46,7 @@ class EmotionController {
   void setLed(uint8_t index, uint8_t r, uint8_t g, uint8_t b);
   void setAll(uint8_t r, uint8_t g, uint8_t b);
   void refresh();
-  void drawLabel();
+  void renderLabel();
   void renderFace();
   void renderNeutral();
   void renderListening();
@@ -57,4 +58,5 @@ class EmotionController {
   void renderFound();
   void renderError();
   void renderSleep();
+  void renderRat();
 };

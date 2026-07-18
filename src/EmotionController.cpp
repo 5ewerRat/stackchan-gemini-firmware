@@ -24,7 +24,7 @@ int triWave(uint16_t phase, int amplitude) {
 }  // namespace
 
 void EmotionController::begin() {
-  setEmotion("neutral");
+  setEmotion("rat");
 }
 
 bool EmotionController::setEmotion(const String& emotion) {
@@ -40,7 +40,7 @@ bool EmotionController::setEmotion(const String& emotion) {
   if (previous == Mode::Sleep && mode_ != Mode::Sleep) {
     restoreSleepDisplay();
   }
-  drawLabel();
+  renderLabel();
   loop();  // Render first LED frame immediately.
   Serial.printf("Emotion: %s\n", current_.c_str());
   return true;
@@ -79,6 +79,9 @@ void EmotionController::loop() {
       if (sleepDisplayOff_ && !externalPower) setAll(0, 0, 0);
       else renderSleep();
       break;
+    case Mode::Rat:
+      renderRat();
+      break;
   }
   refresh();
 }
@@ -94,6 +97,7 @@ EmotionController::Mode EmotionController::parseMode(const String& emotion, Stri
   if (e == "found" || e == "success") { normalized = "found"; return Mode::Found; }
   if (e == "error" || e == "confused") { normalized = "error"; return Mode::Error; }
   if (e == "sleep" || e == "sleeping") { normalized = "sleep"; return Mode::Sleep; }
+  if (e == "rat") { normalized = "rat"; return Mode::Rat; }
   normalized = "neutral";
   return Mode::Neutral;
 }
@@ -173,7 +177,7 @@ void EmotionController::refresh() {
   M5StackChan.refreshRgb();
 }
 
-void EmotionController::drawLabel() {
+void EmotionController::renderLabel() {
   renderFace();
 }
 
@@ -279,6 +283,14 @@ void EmotionController::renderFace() {
       mouthW = 40;
       mouthH = 4;
       break;
+    case Mode::Rat:
+      eyeColor = TFT_BROWN;
+      accent = TFT_DARKGREY;
+      // Frequent blinking for rat
+      closed = ((frame_ / 30) % 8) == 0;
+      mouthW = 32;
+      mouthH = 4;
+      break;
     case Mode::Neutral:
     default:
       // Occasional soft blink in idle.
@@ -289,6 +301,30 @@ void EmotionController::renderFace() {
   // Subtle cheek/accent dots.
   d.fillCircle(cx - 92, cy + 22, 5, accent);
   d.fillCircle(cx + 92, cy + 22, 5, accent);
+
+  // Rat-specific features
+  if (mode_ == Mode::Rat) {
+    // Large rat ears
+    int earTwitch = triWave(frame_ * 8, 5);
+    d.fillEllipse(cx - 80, cy - 60, 25, 40 + earTwitch, TFT_BROWN);
+    d.fillEllipse(cx + 80, cy - 60, 25, 40 + earTwitch, TFT_BROWN);
+    // Inner ear
+    d.fillEllipse(cx - 80, cy - 58, 12, 20 + earTwitch/2, TFT_DARKGREY);
+    d.fillEllipse(cx + 80, cy - 58, 12, 20 + earTwitch/2, TFT_DARKGREY);
+    
+    // Whiskers with twitching
+    int whiskerTwitch = triWave(frame_ * 12, 3);
+    d.drawLine(cx - 30, cy + 20, cx - 80 + whiskerTwitch, cy + 35, TFT_WHITE);
+    d.drawLine(cx - 30, cy + 25, cx - 80 + whiskerTwitch, cy + 40, TFT_WHITE);
+    d.drawLine(cx + 30, cy + 20, cx + 80 - whiskerTwitch, cy + 35, TFT_WHITE);
+    d.drawLine(cx + 30, cy + 25, cx + 80 - whiskerTwitch, cy + 40, TFT_WHITE);
+    
+    // Nose with twitching
+    int noseTwitch = triWave(frame_ * 15, 2);
+    d.fillCircle(cx + noseTwitch, cy + 35, 6, TFT_BLACK);
+    d.fillCircle(cx - 15, cy + 35, 3, TFT_BLACK);
+    d.fillCircle(cx + 15, cy + 35, 3, TFT_BLACK);
+  }
 
   const int lx = cx - 58;
   const int rx = cx + 58;
@@ -430,4 +466,17 @@ void EmotionController::renderError() {
 void EmotionController::renderSleep() {
   uint8_t v = wave8(frame_, 0, 14);
   setAll(0, 0, v);
+}
+
+void EmotionController::renderRat() {
+  // Rat LED animation: twitching whisker-like pattern
+  uint8_t v = wave8(frame_ * 5, 20, 80);
+  for (uint8_t i = 0; i < kLedCount; ++i) {
+    uint8_t local = v;
+    // Create twitching effect - random segments light up
+    if ((i + frame_ / 3) % 7 == 0) local = 120;
+    else if ((i + frame_ / 5) % 11 == 0) local = 60;
+    // Brownish color for rat theme
+    setLed(i, scale8(100, local), scale8(60, local), local);
+  }
 }
